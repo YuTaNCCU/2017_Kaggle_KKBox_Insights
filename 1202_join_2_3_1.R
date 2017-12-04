@@ -1,25 +1,26 @@
-#1.join train.csv <- members.csv <- transactions.csv
+#1.join members.csv <- transactions.csv
 #2.輸出檔案 'j1.csv' : 15,883,148 rows x 16 variables
 
 library(dplyr)
 library(data.table)
 setwd("~/Desktop/KKBoxChurnPrediction")
 
-t <- fread('train.csv', sep = ",", header=T, stringsAsFactors = T)
+#t <- fread('train.csv', sep = ",", header=T, stringsAsFactors = T)
 m <- fread('members.csv', sep = ",", header=T, stringsAsFactors = T)
 s <- fread('transactions.csv', sep = ",", header=T, stringsAsFactors = T)
 
-j1 <- t %>%
-  left_join(m, by='msno') %>%
+j1 <- m %>%
   left_join(s, by='msno') %>%
-  arrange(is_churn, msno, transaction_date)
+  filter(transaction_date > '20120101' & transaction_date < '20170401')%>%
+  arrange( msno, transaction_date)
 fwrite(j1 , file = 'j1.csv', append = FALSE, quote = "auto")
 
+#產生部份數據（十萬筆）
 a <- j1[1:50000,] 
 b <- j1[ (15883148-50000+1) :15883148, ]
 fwrite(rbind(a,b) , file = 'j1_part.csv', append = FALSE, quote = "auto")
 
-j1 <- fread('j1.csv', sep = ",", header=T, stringsAsFactors = T)
+#j1 <- fread('j1.csv', sep = ",", header=T, stringsAsFactors = T)
 
 
 
