@@ -6,23 +6,60 @@ library(data.table)
 setwd("~/Desktop/KKBoxChurnPrediction")
 
 #t <- fread('train.csv', sep = ",", header=T, stringsAsFactors = T)
-m <- fread('members.csv', sep = ",", header=T, stringsAsFactors = T)
+m <- fread('members_v3.csv', sep = ",", header=T, stringsAsFactors = T)
 s <- fread('transactions.csv', sep = ",", header=T, stringsAsFactors = T)
+s2 <- fread('/Users/yuta_mac/Desktop/KKBoxChurnPrediction/old/v2/3_trans_v2/3_trans_v2.csv', sep = ",", header=T, stringsAsFactors = T)
 
-j1 <- m %>%
-  left_join(s, by='msno') %>%
-  filter(transaction_date > '20120101' & transaction_date < '20170401')%>%
+#結合新發布的交易資料
+S <- rbind(s,s2)
+
+#joint ， 三種方式中選擇一種：
+joint1 <- m %>%  #限制一條件 得19,982,667筆  或1,963,059個使用者
+  left_join(S, by='msno') %>%
+  #filter(payment_plan_days==7|payment_plan_days==30|payment_plan_days==31) %>%
+  #filter(bd>0) %>%
+  filter(transaction_date > '20120101' & transaction_date < '20170331') %>%
   arrange( msno, transaction_date)
-fwrite(j1 , file = 'j1.csv', append = FALSE, quote = "auto")
+length( unique(joint1$msno) )
 
-#產生部份數據（十萬筆）
-a <- j1[1:50000,] 
-b <- j1[ (15883148-50000+1) :15883148, ]
-fwrite(rbind(a,b) , file = 'j1_part.csv', append = FALSE, quote = "auto")
+joint1 <- m %>%  #限制三條件 得9,163,948筆  或853,021個使用者
+  left_join(S, by='msno') %>%
+  filter(payment_plan_days==7|payment_plan_days==30|payment_plan_days==31) %>%
+  filter(bd>0) %>%
+  filter(transaction_date > '20120101' & transaction_date < '20170331') %>%
+  arrange( msno, transaction_date)
+length( unique(joint1$msno) )
 
-#j1 <- fread('j1.csv', sep = ",", header=T, stringsAsFactors = T)
+joint2 <- m %>%  #限制二條件   得18,620,548筆  或1,799,503個使用者
+  left_join(S, by='msno') %>%
+  filter(payment_plan_days==7|payment_plan_days==30|payment_plan_days==31) %>%
+  #filter(bd>0) %>%
+  filter(transaction_date > '20120301' & transaction_date < '20170331') %>%
+  arrange( msno, transaction_date)
+length( unique(joint2$msno) )
+
+#依據 限制二條件的結果 將2017第一季仍在使用的使用者篩選出來
+msno_idx_max_med <- joint2 %>%
+  group_by(msno) %>%
+  summarise( max_td = max(transaction_date)) %>%
+  filter(max_td>'20170101' & max_med <'20170331' )
+joint3 <-  joint2[joint2$msno %in% msno_idx_max_med$msno,]
+
+#輸出
+fwrite(joint3 , file = 'joint3.csv', append = FALSE, quote = "auto")
+
+#產生部份數據（五萬個會員）
+set.seed(1)
+sampleMsno <- sample(unique(joint3$msno) , size=50000)
+joint3_part<-joint3[joint3$msno %in% sampleMsno,]
+length( unique(joint3_part$msno) )
+fwrite(joint2_part , file = 'joint3_part.csv', append = FALSE, quote = "auto")
 
 
+
+#joint1 <- fread('joint1.csv', sep = ",", header=T, stringsAsFactors = T)
+
+ 
 
 """
 j1 <- t %>%
